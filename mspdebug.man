@@ -1,4 +1,4 @@
-.TH mspdebug 1 "14 May 2016" "Version 0.24"
+.TH mspdebug 1 "24 Jul 2017" "Version 0.25"
 .SH NAME
 MSPDebug - debugging tool for MSP430 MCUs
 .SH SYNOPSIS
@@ -178,7 +178,9 @@ option.
 .IP "\fBtilib\fR"
 Use the Texas Instruments MSP430.DLL to access the device. The library
 file (MSP430.DLL for Windows, libmsp430.so for Unix-like systems) must
-be present in the dynamic loader search path.
+be present in the dynamic loader search path, unless the
+\fBMSPDEBUG_TILIB_PATH\fR environment variable is present in which
+case it will look there.
 
 USB connection is not supported for this driver. This driver supports
 watchpoints. Note that the \fB-d\fR option for this driver passes its
@@ -203,8 +205,8 @@ Linux, ppi on FreeBSD and DragonFly BSD) must be specified via the
 Connect to system gpios. JTAG mode must be used, and
 only tty access is supported. Currently, this driver is only supported
 on Linux, FreeBSD and DragonFly BSD. The gpios to used must defined using
-a string like "tdi=7 tdo=8 tms=9 tck=4" via the
-\fB-d\fR option. (dont forget the quotes)
+a string like "tdi=7 tdo=8 tms=9 tck=4 rst=10 tst=11" via the
+\fB-d\fR option. (don't forget the quotes)
 
 .IP "\fBload-bsl\fR"
 Connect to a USB bootloader. The stub bootloader will be used to load a
@@ -221,6 +223,8 @@ sequence is \fBDR,r,R,r,d,R:DR,r\fR, but you can override this with the
 \fBWARNING:\fR this driver unlocks the BSL by performing a mass erase.
 There are reports of this operation causing an erase of info A in some
 devices. Use at your own risk.
+.IP "\fBbus-pirate\fR"
+Raw JTAG using Bus Pirate devices.
 .SH COMMANDS
 MSPDebug can accept commands either through an interactive prompt, or
 non-interactively when specified on the command line. The supported
@@ -799,7 +803,7 @@ Default input radix for address expressions. For address values with
 no radix specifier, this value gives the input radix, which is
 10 (decimal) by default.
 .IP "\fBquiet\fR (boolean)"
-If set, MSPDebug will supress most of its debug-related output. This option
+If set, MSPDebug will suppress most of its debug-related output. This option
 defaults to false, but can be set true on start-up using the \fB-q\fR
 command-line option.
 .SH ENVIRONMENT
@@ -807,6 +811,8 @@ command-line option.
 Specifies the location of TI3410 firmware, for raw USB access to FET430UIF
 or eZ430 devices. This variable should contain the path to an Intel HEX
 file containing suitable firmware for the TI3410.
+.IP "\fBMSPDEBUG_TILIB_PATH\fI"
+Specifies the directory to find the Texas Instruments MSP430.DLL library.
 .SH FILES
 .IP "~/.mspdebug"
 File containing commands to be executed on startup.

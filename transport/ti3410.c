@@ -20,7 +20,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#if !defined(__Windows__) || defined(__MINGW32__)
 #include <usb.h>
+#else
+#include <lusb0_usb.h>
+#endif
+
 #include <time.h>
 
 #include "ti3410.h"

@@ -19,7 +19,11 @@
 #ifndef USBUTIL_H_
 #define USBUTIL_H_
 
+#if !defined(__Windows__) || defined(__MINGW32__)
 #include <usb.h>
+#else
+#include <lusb0_usb.h>
+#endif
 
 /* List all available USB devices. */
 void usbutil_list(void);

@@ -38,6 +38,9 @@ else
 	CONSOLE_INPUT_OBJ = ui/input_readline.o
 endif
 
+BSLHID_OBJ ?= transport/bslhid.o
+RF25000_OBJ ?= transport/rf2500.o
+
 ifeq ($(OS),Windows_NT)
     MSPDEBUG_CC = $(CC)
     BINARY = mspdebug.exe
@@ -46,6 +49,11 @@ ifeq ($(OS),Windows_NT)
 	OS_CFLAGS = -D__Windows__ -DNO_SHELLCMD
 	RM = del
     endif
+	ifneq (, $findstring(MINGW, $(UNAME_S)))
+		PORTS_CFLAGS := $(shell pkg-config --cflags libusb)
+		PORTS_LDFLAGS := $(shell pkg-config --libs libusb)
+		RM = rm -rf
+	endif
 else
     MSPDEBUG_CC = $(CC)
     BINARY = mspdebug
@@ -64,12 +72,21 @@ else
 
     ifeq ($(UNAME_S),Darwin) # Mac OS X/MacPorts stuff
       ifeq ($(shell fink -V > /dev/null 2>&1 && echo ok),ok)
-	PORTS_CFLAGS := $(shell pkg-config --cflags libusb)
-	PORTS_LDFLAGS := $(shell pkg-config --libs libusb) -ltermcap -pthread
+	PORTS_CFLAGS := $(shell pkg-config --cflags hidapi libusb)
+	PORTS_LDFLAGS := $(shell pkg-config --libs hidapi libusb) -ltermcap -pthread
+      else ifeq ($(shell brew --version > /dev/null 2>&1 && echo ok),ok)
+	PORTS_CFLAGS := $(shell pkg-config --cflags hidapi libusb)
+	PORTS_LDFLAGS := $(shell pkg-config --libs hidapi libusb) -framework IOKit -framework CoreFoundation
+      else ifeq ($(shell port version > /dev/null 2>&1 && echo ok),ok)
+	PORTS_CFLAGS := $(shell pkg-config --cflags hidapi libusb)
+	PORTS_LDFLAGS := $(shell pkg-config --libs hidapi libusb) -framework IOKit -framework CoreFoundation
       else
 	PORTS_CFLAGS := -I/opt/local/include
-	PORTS_LDFLAGS := -L/opt/local/lib
+	PORTS_LDFLAGS := -L/opt/local/lib -lhidapi -framework IOKit -framework CoreFoundation
       endif
+      BSLHID_OBJ = transport/bslosx.o
+      RF25000_OBJ += transport/rf2500hidapi.o
+      LDFLAGS =
     else ifneq ($(filter $(UNAME_S),OpenBSD NetBSD DragonFly),)
 	PORTS_CFLAGS := $(shell pkg-config --cflags libusb)
 	PORTS_LDFLAGS := $(shell pkg-config --libs libusb) -ltermcap -pthread
@@ -84,7 +101,7 @@ GCC_CFLAGS = -O1 -Wall -Wno-char-subscripts -ggdb
 CONFIG_CFLAGS = -DLIB_DIR=\"$(LIBDIR)\"
 
 MSPDEBUG_LDFLAGS = $(LDFLAGS) $(PORTS_LDFLAGS)
-MSPDEBUG_LIBS = -lusb $(READLINE_LIBS) $(OS_LIBS)
+MSPDEBUG_LIBS = -L. -lusb $(READLINE_LIBS) $(OS_LIBS)
 MSPDEBUG_CFLAGS = $(CFLAGS) $(READLINE_CFLAGS) $(PORTS_CFLAGS)\
  $(GCC_CFLAGS) $(INCLUDES) $(CONFIG_CFLAGS) $(OS_CFLAGS)
 
@@ -93,10 +110,13 @@ all: $(BINARY)
 
 ifeq ($(OS),Windows_NT)
 clean:
-    ifeq ($(UNAME_O),Cygwin)
+ifeq ($(UNAME_O),Cygwin)
 	$(RM) */*.o
 	$(RM) $(BINARY)
-    else
+else ifneq (, $findstring(MINGW, $(UNAME_S)))
+	$(RM) */*.o
+	$(RM) $(BINARY)
+else
 	$(RM) drivers\*.o
 	$(RM) formats\*.o
 	$(RM) simio\*.o
@@ -104,7 +124,7 @@ clean:
 	$(RM) ui\*.o
 	$(RM) util\*.o
 	$(RM) $(BINARY)
-    endif
+endif
 else
 clean:
 	$(RM) */*.o
@@ -147,10 +167,10 @@ OBJ=\
     transport/cp210x.o \
     transport/cdc_acm.o \
     transport/ftdi.o \
-    transport/rf2500.o \
     transport/ti3410.o \
     transport/comport.o \
-    transport/bslhid.o \
+    $(BSLHID_OBJ) \
+    $(RF25000_OBJ) \
     drivers/device.o \
     drivers/bsl.o \
     drivers/fet.o \
@@ -167,6 +187,7 @@ OBJ=\
     drivers/devicelist.o \
     drivers/fet_olimex_db.o \
     drivers/jtdev.o \
+    drivers/jtdev_bus_pirate.o \
     drivers/jtdev_gpio.o \
     drivers/jtaglib.o \
     drivers/pif.o \

@@ -432,7 +432,11 @@ static device_t loadbsl_open(const struct device_args *args)
 	dev->base.type = &device_loadbsl;
 	dev->base.max_breakpoints = 0;
 
+#if defined(__APPLE__)
+	dev->trans = bslosx_open(args->path, args->requested_serial);
+#else
 	dev->trans = bslhid_open(args->path, args->requested_serial);
+#endif
 	if (!dev->trans) {
 		free(dev);
 		return NULL;
@@ -468,5 +472,6 @@ const struct device_class device_loadbsl = {
 	.getregs	= loadbsl_getregs,
 	.setregs	= loadbsl_setregs,
 	.ctl		= loadbsl_ctl,
-	.poll		= loadbsl_poll
+	.poll		= loadbsl_poll,
+	.getconfigfuses = NULL
 };

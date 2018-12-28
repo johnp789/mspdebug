@@ -23,8 +23,11 @@
 #include "util.h"
 #include "powerbuf.h"
 
-/* Print colorized disassembly on command processor standard output */
-void disassemble(address_t addr, const uint8_t *buf, int len,
+/* Print colorized disassembly on command processor standard output.
+ *
+ * Returns the next possible instruction address.
+ */
+address_t disassemble(address_t addr, const uint8_t *buf, int len,
 		 powerbuf_t power);
 
 /* Print colorized hexdump on standard output */
@@ -38,7 +41,8 @@ void show_regs(const address_t *regs);
  * Returns non-zero if the result is of the form sym+0x0offset.
  */
 typedef enum {
-	PRINT_ADDRESS_EXACT	= 0x01
+	PRINT_ADDRESS_EXACT	= 0x01,
+	PRINT_BYTE_DATA         = 0x02
 } print_address_flags_t;
 
 int print_address(address_t addr, char *buf, int max_len,

@@ -43,7 +43,11 @@ static device_t fet_open_rf2500(const struct device_args *args)
 		return NULL;
 	}
 
+#if defined(__APPLE__)
+	trans = rf2500hidapi_open(args->path, args->requested_serial);
+#else
 	trans = rf2500_open(args->path, args->requested_serial);
+#endif
 	if (!trans)
 		return NULL;
 
@@ -63,7 +67,8 @@ const struct device_class device_rf2500 = {
 	.getregs	= fet_getregs,
 	.setregs	= fet_setregs,
 	.ctl		= fet_ctl,
-	.poll		= fet_poll
+	.poll		= fet_poll,
+	.getconfigfuses = NULL
 };
 
 static device_t fet_open_olimex_iso_mk2(const struct device_args *args)
@@ -125,7 +130,8 @@ const struct device_class device_olimex_iso_mk2 = {
 	.getregs	= fet_getregs,
 	.setregs	= fet_setregs,
 	.ctl		= fet_ctl,
-	.poll		= fet_poll
+	.poll		= fet_poll,
+	.getconfigfuses = NULL
 };
 
 static device_t fet_open_olimex(const struct device_args *args)
@@ -160,7 +166,8 @@ const struct device_class device_olimex = {
 	.getregs	= fet_getregs,
 	.setregs	= fet_setregs,
 	.ctl		= fet_ctl,
-	.poll		= fet_poll
+	.poll		= fet_poll,
+	.getconfigfuses = NULL
 };
 
 static device_t fet_open_olimex_v1(const struct device_args *args)
@@ -230,7 +237,8 @@ const struct device_class device_olimex_iso = {
 	.getregs	= fet_getregs,
 	.setregs	= fet_setregs,
 	.ctl		= fet_ctl,
-	.poll		= fet_poll
+	.poll		= fet_poll,
+	.getconfigfuses = NULL
 };
 
 static device_t fet_open_uif(const struct device_args *args)
@@ -260,5 +268,6 @@ const struct device_class device_uif = {
 	.getregs	= fet_getregs,
 	.setregs	= fet_setregs,
 	.ctl		= fet_ctl,
-	.poll		= fet_poll
+	.poll		= fet_poll,
+	.getconfigfuses = NULL
 };

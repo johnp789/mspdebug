@@ -16,7 +16,10 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <limits.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "util/output.h"
 #include "tilib_api.h"
@@ -28,6 +31,9 @@ const struct tilib_api_table *tilib_api;
 #if defined(__Windows__) || defined(__CYGWIN__)
 static const char tilib_filename[] = "MSP430.DLL";
 #define TIDLL __stdcall
+#elif defined(__APPLE__)
+static const char tilib_filename[] = "libmsp430.dylib";
+#define TIDLL
 #else
 static const char tilib_filename[] = "libmsp430.so";
 #define TIDLL
@@ -225,6 +231,7 @@ struct tilib_new_api {
 	int32_t TIDLL (*MSP430_GetNumberOfUsbIfs)(int32_t* number);
 	int32_t TIDLL (*MSP430_GetNameOfUsbIf)(int32_t idx, char **name,
 						int32_t *status);
+	int32_t TIDLL (*MSP430_LoadDeviceDb)(const char *f); // needed for slac460s
 
 	/* MSP430_Debug.h */
 	int32_t TIDLL (*MSP430_Registers)(int32_t *registers, int32_t mask,
@@ -260,6 +267,9 @@ static STATUS_T new_Initialize(char *port, long *version)
 	r = napi.MSP430_Initialize(port, &nv);
 	if (r < 0)
 		return r;
+
+	if (napi.MSP430_LoadDeviceDb)
+	    napi.MSP430_LoadDeviceDb(NULL);
 
 	*version = nv;
 	return 0;
@@ -495,6 +505,7 @@ static int init_new_api(void)
 	if (!(napi.MSP430_GetNumberOfUsbIfs =
 		    get_func("MSP430_GetNumberOfUsbIfs")))
 		return -1;
+	napi.MSP430_LoadDeviceDb = dynload_sym(lib_handle, "MSP430_LoadDeviceDb");
 	if (!(napi.MSP430_GetNameOfUsbIf = get_func("MSP430_GetNameOfUsbIf")))
 		return -1;
 	if (!(napi.MSP430_Registers = get_func("MSP430_Registers")))
@@ -750,9 +761,24 @@ static int init_old_api(void)
 
 int tilib_api_init(void)
 {
-	int ret;
+	int ret, res;
+	char libpath[PATH_MAX], *path;
 
-	lib_handle = dynload_open(tilib_filename);
+	libpath[0] = '\0';
+	if ((path = getenv("MSPDEBUG_TILIB_PATH")) != NULL) {
+		res = snprintf(libpath, sizeof(libpath), "%s/%s", path, tilib_filename);
+	} else {
+		res = snprintf(libpath, sizeof(libpath), "%s", tilib_filename);
+	}
+
+	if(res == -1 || res >= sizeof(libpath)) {
+		printc_err("MSPDEBUG_TILIB_PATH specifies too long a path\n");
+
+		return -1;
+	}
+
+	lib_handle = dynload_open(libpath);
+
 	if (!lib_handle) {
 		printc_err("tilib_api: can't find %s: %s\n",
 			   tilib_filename, dynload_error());
